@@ -53,3 +53,23 @@ test('setQueryParameters should add unknown properties', function() {
     expect(state1[k]).toEqual(v);
   });
 });
+
+test('setQueryParameters should erase undefined properties', function() {
+  var state0 = new SearchParameters({
+    facets: ['a', 'b'],
+    ignorePlurals: false,
+    attributesToHighlight: ''
+  });
+
+  var params = {
+    unknow1: ['a', 'c'],
+    facet: ['city', 'country'],
+    attributesToHighlight: undefined
+  };
+
+  var state1 = state0.setQueryParameters(params);
+
+  console.log(state1.attributesToHighlight)
+  expect('attributesToHighlight' in state1).toBe(false);
+
+});
