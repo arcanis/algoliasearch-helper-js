@@ -113,7 +113,7 @@ function SearchParameters(newParameters) {
    * [facets attribute](https://www.algolia.com/doc/rest-api/search#param-facets) sent to algolia.
    * Hierarchical facets are a sub type of disjunctive facets that
    * let you filter faceted attributes hierarchically.
-   * @member {string[]|object[]}
+   * @member {object[]}
    */
   this.hierarchicalFacets = params.hierarchicalFacets || [];
 
@@ -202,6 +202,30 @@ function SearchParameters(newParameters) {
       self[paramName] = params[paramName];
     }
   });
+
+  // possibly reapply rootPath, if another change removed it.
+  this.hierarchicalFacets.forEach(function(facet) {
+    if (facet.rootPath) {
+      var currentRefinement = self.getHierarchicalRefinement(facet.name);
+
+      if (
+        currentRefinement.length > 0 &&
+        currentRefinement[0].indexOf(facet.rootPath) !== 0
+      ) {
+        self = self.clearRefinements(facet.name);
+      }
+
+      // get it again in case it has been cleared
+      currentRefinement = self.getHierarchicalRefinement(facet.name);
+      if (currentRefinement.length === 0) {
+        self = self.toggleHierarchicalFacetRefinement(
+          facet.name,
+          facet.rootPath
+        );
+      }
+    }
+  });
+  return self;
 }
 
 /**
@@ -285,32 +309,13 @@ SearchParameters._parseNumbers = function(partialState) {
 };
 
 /**
- * Factory for SearchParameters
+ * Factory for SearchParameters, same as the constructor
  * @param {object|SearchParameters} newParameters existing parameters or partial
  * object for the properties of a new SearchParameters
- * @return {SearchParameters} frozen instance of SearchParameters
+ * @return {SearchParameters}instance of SearchParameters
  */
 SearchParameters.make = function makeSearchParameters(newParameters) {
-  var instance = new SearchParameters(newParameters);
-
-  var hierarchicalFacets = newParameters.hierarchicalFacets || [];
-  hierarchicalFacets.forEach(function(facet) {
-    if (facet.rootPath) {
-      var currentRefinement = instance.getHierarchicalRefinement(facet.name);
-
-      if (currentRefinement.length > 0 && currentRefinement[0].indexOf(facet.rootPath) !== 0) {
-        instance = instance.clearRefinements(facet.name);
-      }
-
-      // get it again in case it has been cleared
-      currentRefinement = instance.getHierarchicalRefinement(facet.name);
-      if (currentRefinement.length === 0) {
-        instance = instance.toggleHierarchicalFacetRefinement(facet.name, facet.rootPath);
-      }
-    }
-  });
-
-  return instance;
+  return new SearchParameters(newParameters);
 };
 
 /**
@@ -848,11 +853,12 @@ SearchParameters.prototype = {
       return this;
     }
 
-    return this.clearRefinements(facet).setQueryParameters({
+    return this.setQueryParameters({
       hierarchicalFacets: this.hierarchicalFacets.filter(function(f) {
         return f.name !== facet;
       })
-    });
+    // clear after setting facets, since otherwise rootPath gets reapplied
+    }).clearRefinements(facet);
   },
   /**
    * Remove a refinement set on facet. If a value is provided, it will clear the

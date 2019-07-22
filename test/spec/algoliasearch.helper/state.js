@@ -57,4 +57,20 @@ test('setState should set a default hierarchicalFacetRefinement when a rootPath 
   expect(finalHelperState.hierarchicalFacetsRefinements).toEqual({
     'hierarchicalCategories.lvl0': ['Cameras & Camcorders']
   });
+
+
+  const newState = helper.state
+    .removeHierarchicalFacetRefinement(
+      'hierarchicalCategories.lvl0',
+      'Cameras & Camcorders'
+    );
+    // .addHierarchicalFacetRefinement(
+    //   'hierarchicalCategories.lvl0',
+    //   'Cameras & Camcorderz'
+    // );
+
+  console.log(
+    'expected',
+    newState.hierarchicalFacetsRefinements
+  );
 });
